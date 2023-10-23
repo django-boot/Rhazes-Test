@@ -1,23 +1,25 @@
 from django.http import HttpResponse
-from rhazes.context import ApplicationContext
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rhazes.decorator import inject
 
 from app1.services.name_generator import StringGeneratorService
 
 
-# @inject(
-#     configuration={
-#         StringGeneratorService: {"lazy": True}
-#     }
-# )
-def name_generator_view(request, *args, **kwargs):
-    string_generator: StringGeneratorService = ApplicationContext.get_lazy_bean(StringGeneratorService)
-    qs: dict = request.GET.dict()
-    return HttpResponse(content=string_generator.generate(int(qs.get("length", 10))), status=200)
+@inject()
+class NameGeneratorView(APIView):
+    def __init__(self, string_generator: StringGeneratorService, **kwargs):
+        self.string_generator = string_generator
+        super(NameGeneratorView, self).__init__(**kwargs)
 
-#
-# class NameGeneratorView(APIView):
-#
-#     def __int__(self, string_generator: StringGeneratorService, **kwargs):
-#         self.string_generator = string_generator
-#
-#
+    def get(self, request, *args, **kwargs):
+        qs: dict = request.GET.dict()
+        return Response(data={"name": self.string_generator.generate(int(qs.get("length", 10)))})
+
+
+
+# This doesnt work
+@inject()
+def view_function(request, string_generator: StringGeneratorService):
+    qs: dict = request.GET.dict()
+    return HttpResponse(content="Hey")
